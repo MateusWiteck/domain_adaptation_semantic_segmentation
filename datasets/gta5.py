@@ -46,7 +46,7 @@ if __name__ == '__main__':
     from torchvision import transforms
 
     # Configurações iniciais
-    root_dir = '/path/GTA5'  # Altere para o caminho real
+    root_dir = 'domain_adaptation_semantic_segmentation/data/GTA5'  # Altere para o caminho real
     transform = transforms.ToTensor()
     label_transform = transforms.ToTensor()
 
