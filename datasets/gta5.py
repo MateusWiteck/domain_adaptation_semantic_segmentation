@@ -18,7 +18,7 @@ class GTA5(Dataset):
     def __getitem__(self, idx):
         img_name = self.images[idx]
         img_path = os.path.join(self.image_dir, img_name)
-        label_name = img_name 
+        label_name = img_name  # Assumes label file has the same name as the image
         label_path = os.path.join(self.label_dir, label_name)
         
         image = Image.open(img_path).convert('RGB')
@@ -30,8 +30,8 @@ class GTA5(Dataset):
         if self.label_transform is not None:
             label = self.label_transform(label)
 
-        label_array = np.array(label)
-        label_array = label_array.astype(np.int32)
+        # Convert label to tensor
+        label_array = np.array(label).astype(np.int32)
         label_tensor = torch.tensor(label_array)
         
         return image, label_tensor
@@ -45,22 +45,22 @@ if __name__ == '__main__':
     import random
     from torchvision import transforms
 
-    # Configurações iniciais
-    root_dir = 'domain_adaptation_semantic_segmentation/data/GTA5'  # Altere para o caminho real
+    # Path to the dataset (adjust as needed)
+    root_dir = 'domain_adaptation_semantic_segmentation/data/GTA5'
     transform = transforms.ToTensor()
-    label_transform = transforms.ToTensor()
 
-    # Instancia o dataset
+    # Initialize dataset
     dataset = GTA5(root_dir=root_dir, transform=transform, label_transform=None)
 
-    # Seleciona um índice aleatório
+    # Select a random sample
+    random.seed(42)  # Ensures reproducibility
     idx = random.randint(0, len(dataset) - 1)
     image, label_tensor = dataset[idx]
 
-    # Converte a label para numpy para exibição (como máscara)
+    # Convert label to numpy for display
     label_np = label_tensor.numpy()
 
-    # Plot
+    # Plot image and label
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
     axes[0].imshow(image.permute(1, 2, 0))  # [C, H, W] -> [H, W, C]
     axes[0].set_title('Image')
@@ -71,3 +71,10 @@ if __name__ == '__main__':
     axes[1].axis('off')
 
     plt.show()
+
+    print("Output in numpy array format:")
+    print(label_np)
+    print("Output in tensor format:")   
+    print(label_tensor)
+    print("Shape of label tensor:")
+    print(label_tensor.shape)
