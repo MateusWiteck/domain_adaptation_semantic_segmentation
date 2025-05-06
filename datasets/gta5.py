@@ -3,7 +3,8 @@ import os
 import numpy as np
 from PIL import Image
 import torch
-
+from GTA5Label import GTA5Labels_TaskCV2017
+from view_label_human import visualize_label_with_colors
 
 class GTA5(Dataset):
     def __init__(self, root_dir, transform=None, label_transform=None):
@@ -15,30 +16,66 @@ class GTA5(Dataset):
         self.label_transform = label_transform
         self.images = os.listdir(self.image_dir)
 
+        # Precompute the color → ID mapping once
+        self._color_to_id = {label.color: label.ID for label in GTA5Labels_TaskCV2017.list_}
+
     def __getitem__(self, idx):
         img_name = self.images[idx]
         img_path = os.path.join(self.image_dir, img_name)
         label_name = img_name  # Assumes label file has the same name as the image
         label_path = os.path.join(self.label_dir, label_name)
-        
+
         image = Image.open(img_path).convert('RGB')
         label = Image.open(label_path)
+
+        # Convert the label if needed
+        label = self._convert_palette_to_class_ids(label)
+
+        # Convert label to array
+        label_array = np.array(label).astype(np.int32)
+
+        if self.label_transform is not None:
+            label = self.label_transform(label)
+            label_array = np.array(label).astype(np.int32)
+
+        label_tensor = torch.tensor(label_array, dtype=torch.long)
 
         if self.transform is not None:
             image = self.transform(image)
 
-        if self.label_transform is not None:
-            label = self.label_transform(label)
-
-        # Convert label to tensor
-        label_array = np.array(label).astype(np.int32)
-        label_tensor = torch.tensor(label_array)
-        
         return image, label_tensor
 
-    def __len__(self):
-        return len(self.images)
+    def _convert_palette_to_class_ids(self, label_img):
+        """
+        Convert a palette ('P') mode image to 'L' mode with class IDs.
+
+        Args:
+            label_img (PIL.Image): The input label image.
+
+        Returns:
+            PIL.Image: 'L' mode image with class IDs.
+        """
+        if label_img.mode != 'P':
+            # If already not palette mode, return as is
+            return label_img
+
+        # Convert palette to RGB
+        label_rgb = label_img.convert('RGB')
+        label_rgb_array = np.array(label_rgb)
+
+        # Prepare the output array
+        label_id_array = np.full(label_rgb_array.shape[:2], fill_value=255, dtype=np.uint8)
+
+        # Map each color to its class ID
+        for color, class_id in self._color_to_id.items():
+            mask = np.all(label_rgb_array == color, axis=-1)
+            label_id_array[mask] = class_id
+
+        return Image.fromarray(label_id_array, mode='L')
     
+    def __len__(self):
+        return len(self.images) 
+
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
@@ -46,7 +83,7 @@ if __name__ == '__main__':
     from torchvision import transforms
 
     # Path to the dataset (adjust as needed)
-    root_dir = 'domain_adaptation_semantic_segmentation/data/GTA5'
+    root_dir = 'data/GTA5'
     transform = transforms.ToTensor()
 
     # Initialize dataset
@@ -66,15 +103,19 @@ if __name__ == '__main__':
     axes[0].set_title('Image')
     axes[0].axis('off')
 
-    axes[1].imshow(label_np, cmap='gray')
+    # Display grayscale label
+    axes[1].imshow(label_np, cmap='gray', vmin=0, vmax=20)  
     axes[1].set_title('Segmentation Mask')
     axes[1].axis('off')
 
     plt.show()
 
-    print("Output in numpy array format:")
-    print(label_np)
-    print("Output in tensor format:")   
-    print(label_tensor)
-    print("Shape of label tensor:")
-    print(label_tensor.shape)
+    #print("Output in numpy array format:")
+    #print(label_np)
+    #print("Output in tensor format:")   
+    #print(label_tensor)
+    #print("Shape of label tensor:")
+    #print(label_tensor.shape)
+
+    # Plot the image in the color pattern given by the GTA dataset
+    visualize_label_with_colors(label_np)

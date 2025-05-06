@@ -3,6 +3,8 @@ import os
 import numpy as np
 from PIL import Image
 import torch
+from view_label_human import visualize_label_with_colors
+
 
 class CityScapes(Dataset):
     def __init__(self, root_dir, split='train', transform=None, label_transform=None):
@@ -53,7 +55,7 @@ if __name__ == '__main__':
     from torchvision import transforms
 
     # Path to your dataset (adjust here)
-    root_dir = 'domain_adaptation_semantic_segmentation/data/Cityscapes/Cityspaces'
+    root_dir = 'data/Cityscapes/Cityspaces'
 
     # Simple transforms (ToTensor only for the image)
     transform = transforms.ToTensor()
@@ -74,15 +76,19 @@ if __name__ == '__main__':
     axes[0].set_title('Image')
     axes[0].axis('off')
 
-    axes[1].imshow(label_np, cmap='gray')
+    axes[1].imshow(label_np, cmap='gray', vmin=0, vmax=20) 
     axes[1].set_title('Segmentation Mask')
     axes[1].axis('off')
 
     plt.show()
 
-    print("Output in numpy array format:")
-    print(label_np)
-    print("Output in tensor format:")   
-    print(label_tensor)
-    print("Shape of label tensor:")
-    print(label_tensor.shape)
+    #print("Output in numpy array format:")
+    #print(label_np)
+    #print("Output in tensor format:")   
+    #print(label_tensor)
+    #print("Shape of label tensor:")
+    #print(label_tensor.shape)
+
+    # Plot the image in the color pattern given by the GTA dataset
+    visualize_label_with_colors(label_np)
+
