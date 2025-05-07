@@ -158,8 +158,9 @@ class ResNetMulti(nn.Module):
         which does the classification of pixel into classes
         """
         b = []
-        if self.multi_level:
-            b.append(self.layer5.parameters())
+        # This part of  the code does no work
+        #if self.multi_level:
+        #    b.append(self.layer5.parameters())
         b.append(self.layer6.parameters())
 
         for j in range(len(b)):
@@ -186,3 +187,5 @@ def get_deeplab_v2(num_classes=19, pretrain=True, pretrain_model_path='DeepLab_r
         model.load_state_dict(new_params, strict=False)
 
     return model
+
+
