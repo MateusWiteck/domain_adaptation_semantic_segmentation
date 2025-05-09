@@ -62,7 +62,7 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, num_classes
         "parameters": params
     }
 
-def train_model(model, dataloader, optimizer, criterion, device, num_classes, num_epochs, model_name, project="cityscapes-segmentation"):
+def train_model(model, dataloader, optimizer, criterion, device, num_classes, num_epochs, model_name):
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
     checkpoint_path = os.path.join(CHECKPOINT_DIR, f"{model_name}.pt")
 
@@ -76,7 +76,11 @@ def train_model(model, dataloader, optimizer, criterion, device, num_classes, nu
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         start_epoch = checkpoint["epoch"] + 1
 
-    wandb.init(project=project, name=model_name, resume="allow")
+    # Format date time human-readable
+    current_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+    run_name = f"{current_time}_{model_name}_start_epoch_{start_epoch}"
+    wandb.init(project=model_name, name=run_name, resume="allow")
+
     num_epochs = num_epochs
     all_metrics = []
 
@@ -105,7 +109,7 @@ def train_model(model, dataloader, optimizer, criterion, device, num_classes, nu
     wandb.finish()
     return all_metrics
 
-def test_model(model, dataloader, device, num_classes, model_name, project="cityscapes-segmentation"):
+def test_model(model, dataloader, device, num_classes, model_name):
 
     checkpoint_path = os.path.join("checkpoints", f"{model_name}.pt")
     if not os.path.exists(checkpoint_path):
@@ -135,7 +139,10 @@ def test_model(model, dataloader, device, num_classes, model_name, project="city
     avg_latency = total_latency / len(dataloader)
     final_miou = miou_metric.compute().item()
 
-    wandb.init(project=project, name=f"test_{model_name}", reinit=True)
+
+    current_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+    run_name = f"{current_time}_test_{model_name}"
+    wandb.init(project=f"test_{model_name}", name=run_name, reinit=True)
     wandb.log({
         "Test mIoU": final_miou,
         "Test latency_per_batch": avg_latency
