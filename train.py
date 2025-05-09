@@ -7,9 +7,10 @@ from torchmetrics.classification import MulticlassJaccardIndex
 from fvcore.nn import FlopCountAnalysis
 from tqdm import tqdm
 
-CHECKPOINT_DIR = "checkpoints"
+PATH_STORE_RESULTS = "/content/drive/MyDrive/MLDL_PROJECT/results/"
+CHECKPOINT_DIR = PATH_STORE_RESULTS + "checkpoints/"
 
-def train_one_epoch(model, dataloader, optimizer, criterion, device, num_classes, epoch=None):
+def train_one_epoch(model, dataloader, optimizer, criterion, num_classes, device='cuda', epoch=None):
     model.train()
     total_loss = 0.0
     miou_metric = MulticlassJaccardIndex(num_classes=num_classes, ignore_index=255).to(device)
@@ -62,9 +63,15 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, num_classes
         "parameters": params
     }
 
-def train_model(model, dataloader, optimizer, criterion, device, num_classes, num_epochs, model_name):
+def train_model(model, dataloader, optimizer, criterion, num_classes, num_epochs, model_name, device='cuda'):
+
+    # Check if the drive is mounted
+    if not os.path.exists(PATH_STORE_RESULTS):
+        raise FileNotFoundError(f"Path {PATH_STORE_RESULTS} does not exist. Please mount the drive.")
+    # Create directories if they do not exist
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
     checkpoint_path = os.path.join(CHECKPOINT_DIR, f"{model_name}.pt")
+
 
     start_epoch = 0
 
@@ -91,9 +98,9 @@ def train_model(model, dataloader, optimizer, criterion, device, num_classes, nu
             dataloader=dataloader,
             optimizer=optimizer,
             criterion=criterion,
-            device=device,
             num_classes=num_classes,
-            epoch=epoch
+            epoch=epoch,
+            device=device
         )
         all_metrics.append(metrics)
 
@@ -109,7 +116,7 @@ def train_model(model, dataloader, optimizer, criterion, device, num_classes, nu
     wandb.finish()
     return all_metrics
 
-def test_model(model, dataloader, device, num_classes, model_name):
+def test_model(model, dataloader, num_classes, model_name, device='cuda'):
 
     checkpoint_path = os.path.join("checkpoints", f"{model_name}.pt")
     if not os.path.exists(checkpoint_path):
