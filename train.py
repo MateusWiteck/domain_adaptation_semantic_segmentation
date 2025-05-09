@@ -5,6 +5,7 @@ import wandb
 import os
 from torchmetrics.classification import MulticlassJaccardIndex
 from fvcore.nn import FlopCountAnalysis
+from tqdm import tqdm
 
 CHECKPOINT_DIR = "checkpoints"
 
@@ -14,7 +15,8 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, num_classes
     miou_metric = MulticlassJaccardIndex(num_classes=num_classes, ignore_index=255).to(device)
     start_time = time.time()
 
-    for images, labels in dataloader:
+    for images, labels in tqdm(dataloader, desc=f"Epoch {epoch+1}", leave=False):
+
         images = images.to(device)
         labels = labels.to(device)
 
@@ -119,7 +121,7 @@ def test_model(model, dataloader, device, num_classes, model_name, project="city
 
     start_time = time.time()
     with torch.no_grad():
-        for images, labels in dataloader:
+        for images, labels in tqdm(dataloader, desc="Testing", leave=False):
             images = images.to(device)
             labels = labels.to(device)
 
