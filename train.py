@@ -60,7 +60,7 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, num_classes
         "parameters": params
     }
 
-def train_model(model, dataloader, optimizer, criterion, device, num_classes, config, model_name, project="cityscapes-segmentation"):
+def train_model(model, dataloader, optimizer, criterion, device, num_classes, num_epochs, model_name, project="cityscapes-segmentation"):
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
     checkpoint_path = os.path.join(CHECKPOINT_DIR, f"{model_name}.pt")
 
@@ -74,8 +74,8 @@ def train_model(model, dataloader, optimizer, criterion, device, num_classes, co
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         start_epoch = checkpoint["epoch"] + 1
 
-    wandb.init(project=project, name=model_name, config=config, resume="allow")
-    num_epochs = config["num_epochs"]
+    wandb.init(project=project, name=model_name, resume="allow")
+    num_epochs = num_epochs
     all_metrics = []
 
     for epoch in range(start_epoch, num_epochs):
