@@ -1,5 +1,3 @@
-# train.py
-
 import torch
 import torch.nn.functional as F
 import time
@@ -62,7 +60,7 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, num_classes
         "parameters": params
     }
 
-def train(model, dataloader, optimizer, criterion, device, num_classes, config, model_name, project="cityscapes-segmentation"):
+def train_model(model, dataloader, optimizer, criterion, device, num_classes, config, model_name, project="cityscapes-segmentation"):
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
     checkpoint_path = os.path.join(CHECKPOINT_DIR, f"{model_name}.pt")
 
@@ -105,7 +103,7 @@ def train(model, dataloader, optimizer, criterion, device, num_classes, config, 
     wandb.finish()
     return all_metrics
 
-def test(model, dataloader, device, num_classes, model_name, project="cityscapes-segmentation"):
+def test_model(model, dataloader, device, num_classes, model_name, project="cityscapes-segmentation"):
 
     checkpoint_path = os.path.join("checkpoints", f"{model_name}.pt")
     if not os.path.exists(checkpoint_path):
