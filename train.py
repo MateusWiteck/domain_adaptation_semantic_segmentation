@@ -117,14 +117,6 @@ def train_model(model, dataloader, optimizer, criterion, num_classes, num_epochs
     return all_metrics
 
 def test_model(model, dataloader, num_classes, model_name, device='cuda'):
-
-    checkpoint_path = os.path.join("checkpoints", f"{model_name}.pt")
-    if not os.path.exists(checkpoint_path):
-        raise FileNotFoundError(f"Checkpoint not found for model '{model_name}' at {checkpoint_path}")
-
-    print(f"Loading checkpoint from {checkpoint_path} for evaluation...")
-    checkpoint = torch.load(checkpoint_path)
-    model.load_state_dict(checkpoint["model_state_dict"])
     model = model.to(device)
     model.eval()
 
