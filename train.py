@@ -47,14 +47,6 @@ def train_one_epoch(model, dataloader, optimizer, criterion, num_classes, device
         total_flops = None
         params = None
 
-    wandb.log({
-        "loss": avg_loss,
-        "mIoU": miou,
-        "latency_per_batch": latency,
-        **({"FLOPs (GFLOPs)": total_flops} if total_flops is not None else {}),
-        **({"Parameters (M)": params} if params is not None else {})
-    }, step=epoch)
-
     return {
         "loss": avg_loss,
         "mIoU": miou,
@@ -63,19 +55,38 @@ def train_one_epoch(model, dataloader, optimizer, criterion, num_classes, device
         "parameters": params
     }
 
-def train_model(model, dataloader, optimizer, criterion, num_classes, num_epochs, model_name, device='cuda'):
+def evaluate_model(model, dataloader, num_classes, device='cuda'):
+    model.eval()
+    miou_metric = MulticlassJaccardIndex(num_classes=num_classes, ignore_index=255).to(device)
+    total_loss = 0.0
+    criterion = torch.nn.CrossEntropyLoss(ignore_index=255)
+    
+    with torch.no_grad():
+        for images, labels in dataloader:
+            images = images.to(device)
+            labels = labels.to(device)
+            preds = model(images)
 
-    # Check if the drive is mounted
+            if preds.shape[-2:] != labels.shape[-2:]:
+                preds = F.interpolate(preds, size=labels.shape[-2:], mode='bilinear', align_corners=True)
+
+            loss = criterion(preds, labels.long())
+            total_loss += loss.item()
+            miou_metric.update(preds.argmax(1), labels)
+
+    avg_loss = total_loss / len(dataloader)
+    miou = miou_metric.compute().item()
+    return {"val_loss": avg_loss, "val_mIoU": miou}
+
+def train_model(model, dataloader, val_dataloader, optimizer, criterion, num_classes, num_epochs, model_name, device='cuda'):
+
     if not os.path.exists(PATH_STORE_RESULTS):
         raise FileNotFoundError(f"Path {PATH_STORE_RESULTS} does not exist. Please mount the drive.")
-    # Create directories if they do not exist
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
     checkpoint_path = os.path.join(CHECKPOINT_DIR, f"{model_name}.pt")
 
-
     start_epoch = 0
 
-    # Resume from checkpoint if exists
     if os.path.exists(checkpoint_path):
         print(f"Loading checkpoint from {checkpoint_path}")
         checkpoint = torch.load(checkpoint_path)
@@ -83,17 +94,15 @@ def train_model(model, dataloader, optimizer, criterion, num_classes, num_epochs
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         start_epoch = checkpoint["epoch"] + 1
 
-    # Format date time human-readable
     current_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
     run_name = f"{current_time}_{model_name}_start_epoch_{start_epoch}"
     wandb.init(project=model_name, name=run_name, resume="allow")
 
-    num_epochs = num_epochs
     all_metrics = []
 
     for epoch in range(start_epoch, num_epochs):
         print(f"Epoch [{epoch + 1}/{num_epochs}]")
-        metrics = train_one_epoch(
+        train_metrics = train_one_epoch(
             model=model,
             dataloader=dataloader,
             optimizer=optimizer,
@@ -102,9 +111,19 @@ def train_model(model, dataloader, optimizer, criterion, num_classes, num_epochs
             epoch=epoch,
             device=device
         )
-        all_metrics.append(metrics)
+        val_metrics = evaluate_model(model, val_dataloader, num_classes, device=device)
+        all_metrics.append({**train_metrics, **val_metrics})
 
-        # Save checkpoint every 10 epochs
+        wandb.log({
+            "train_loss": train_metrics["loss"],
+            "train_mIoU": train_metrics["mIoU"],
+            "train_latency_per_batch": train_metrics["latency"],
+            "val_loss": val_metrics["val_loss"],
+            "val_mIoU": val_metrics["val_mIoU"],
+            **({"FLOPs (GFLOPs)": train_metrics["FLOPs"]} if train_metrics["FLOPs"] is not None else {}),
+            **({"Parameters (M)": train_metrics["parameters"]} if train_metrics["parameters"] is not None else {})
+        }, step=epoch)
+
         if (epoch + 1) % 10 == 0 or (epoch + 1) == num_epochs:
             torch.save({
                 "epoch": epoch,
@@ -116,6 +135,10 @@ def train_model(model, dataloader, optimizer, criterion, num_classes, num_epochs
     wandb.finish()
     return all_metrics
 
+
+
+# TODO: Latency per image
+# Evolution of the performace over the validation set over epochs of training
 def test_model(model, dataloader, num_classes, model_name, device='cuda'):
     model = model.to(device)
     model.eval()
@@ -128,7 +151,7 @@ def test_model(model, dataloader, num_classes, model_name, device='cuda'):
             images = images.to(device)
             labels = labels.to(device)
 
-            preds, _, _ = model(images)
+            preds = model(images) # TODO: Explain in the report why the model do not return a tuple when testing
             if preds.shape[-2:] != labels.shape[-2:]:
                 preds = F.interpolate(preds, size=labels.shape[-2:], mode='bilinear', align_corners=True)
 
