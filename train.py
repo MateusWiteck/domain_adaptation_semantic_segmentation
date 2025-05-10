@@ -62,7 +62,7 @@ def evaluate_model(model, dataloader, num_classes, device='cuda'):
     criterion = torch.nn.CrossEntropyLoss(ignore_index=255)
     
     with torch.no_grad():
-        for images, labels in dataloader:
+        for images, labels in tqdm(dataloader, desc=f"Validating", leave=False):
             images = images.to(device)
             labels = labels.to(device)
             preds = model(images)
