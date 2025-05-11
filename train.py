@@ -38,21 +38,10 @@ def train_one_epoch(model, dataloader, optimizer, criterion, num_classes, device
     miou = miou_metric.compute().item()
     latency = (time.time() - start_time) / len(dataloader)
 
-    if epoch == 0:
-        sample_input = torch.randn(1, 3, 512, 1024).to(device)
-        flops = FlopCountAnalysis(model, sample_input)
-        total_flops = flops.total() / 1e9
-        params = sum(p.numel() for p in model.parameters() if p.requires_grad) / 1e6
-    else:
-        total_flops = None
-        params = None
-
     return {
         "loss": avg_loss,
         "mIoU": miou,
-        "latency": latency,
-        "FLOPs": total_flops,
-        "parameters": params
+        "latency": latency
     }
 
 def evaluate_model(model, dataloader, num_classes, device='cuda'):
@@ -119,9 +108,7 @@ def train_model(model, dataloader, val_dataloader, optimizer, criterion, num_cla
             "train_mIoU": train_metrics["mIoU"],
             "train_latency_per_batch": train_metrics["latency"],
             "val_loss": val_metrics["val_loss"],
-            "val_mIoU": val_metrics["val_mIoU"],
-            **({"FLOPs (GFLOPs)": train_metrics["FLOPs"]} if train_metrics["FLOPs"] is not None else {}),
-            **({"Parameters (M)": train_metrics["parameters"]} if train_metrics["parameters"] is not None else {})
+            "val_mIoU": val_metrics["val_mIoU"]
         }, step=epoch)
 
         if (epoch + 1) % 10 == 0 or (epoch + 1) == num_epochs:
