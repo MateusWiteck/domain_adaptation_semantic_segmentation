@@ -137,43 +137,53 @@ def train_model(model, dataloader, val_dataloader, optimizer, criterion, num_cla
 
 
 
-# TODO: Latency per image
-# Evolution of the performace over the validation set over epochs of training
-def test_model(model, dataloader, num_classes, model_name, device='cuda'):
+def evaluate_performance(model, dataloader, num_classes, device='cuda'):
     model = model.to(device)
     model.eval()
 
-    miou_metric = MulticlassJaccardIndex(num_classes=num_classes, ignore_index=255).to(device)
+    # === Params ===
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad) / 1e6  # in Millions
 
-    start_time = time.time()
+    # === FLOPs (dummy input) ===
+    sample_input = torch.randn(1, 3, 512, 1024).to(device)
+    flops = FlopCountAnalysis(model, sample_input)
+    total_flops = flops.total() / 1e9  # in GFLOPs
+
+    # === Evaluation ===
+    miou_metric = MulticlassJaccardIndex(num_classes=num_classes, ignore_index=255).to(device)
+    criterion = torch.nn.CrossEntropyLoss(ignore_index=255)
+    total_loss = 0.0
+    total_time = 0.0
+    num_samples = 0
+
     with torch.no_grad():
-        for images, labels in tqdm(dataloader, desc="Testing", leave=False):
+        for images, labels in dataloader:
             images = images.to(device)
             labels = labels.to(device)
 
-            preds = model(images) # TODO: Explain in the report why the model do not return a tuple when testing
+            start_time = time.time()
+            preds = model(images)
+            torch.cuda.synchronize()
+            end_time = time.time()
+
+            total_time += end_time - start_time
+            num_samples += images.size(0)
+
             if preds.shape[-2:] != labels.shape[-2:]:
                 preds = F.interpolate(preds, size=labels.shape[-2:], mode='bilinear', align_corners=True)
 
+            loss = criterion(preds, labels.long())
+            total_loss += loss.item()
             miou_metric.update(preds.argmax(1), labels)
 
-    total_latency = time.time() - start_time
-    avg_latency = total_latency / len(dataloader)
-    final_miou = miou_metric.compute().item()
-
-
-    current_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
-    run_name = f"{current_time}_test_{model_name}"
-    wandb.init(project=f"test_{model_name}", name=run_name, reinit=True)
-    wandb.log({
-        "Test mIoU": final_miou,
-        "Test latency_per_batch": avg_latency
-    })
-    wandb.finish()
-
-    print(f"[Test] mIoU: {final_miou:.4f}, Avg Latency: {avg_latency:.4f}s")
+    avg_loss = total_loss / len(dataloader)
+    avg_latency = total_time / num_samples
+    miou = miou_metric.compute().item()
 
     return {
-        "mIoU": final_miou,
-        "latency": avg_latency
+        "val_loss": avg_loss,
+        "val_mIoU": miou,
+        "latency_per_image": avg_latency,
+        "FLOPs (GFLOPs)": total_flops,
+        "parameters (M)": total_params
     }
