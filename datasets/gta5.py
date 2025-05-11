@@ -119,3 +119,9 @@ if __name__ == '__main__':
 
     # Plot the image in the color pattern given by the GTA dataset
     visualize_label_with_colors(label_np)
+
+    # Print dataset information
+    print(f"Dataset length: {len(dataset)}")
+    print(f"Image shape: {image.shape}")
+    print(f"Label shape: {label_tensor.shape}")
+    
