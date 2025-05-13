@@ -111,7 +111,7 @@ def train_model(model, dataloader, val_dataloader, optimizer, criterion, num_cla
             "val_mIoU": val_metrics["val_mIoU"]
         }, step=epoch)
 
-        if (epoch + 1) % 10 == 0 or (epoch + 1) == num_epochs:
+        if (epoch + 1) % 3 == 0 or (epoch + 1) == num_epochs:
             torch.save({
                 "epoch": epoch,
                 "model_state_dict": model.state_dict(),
