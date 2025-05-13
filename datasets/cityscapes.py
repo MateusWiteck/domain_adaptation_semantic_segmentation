@@ -3,7 +3,7 @@ import os
 import numpy as np
 from PIL import Image
 import torch
-from view_label_human import visualize_label_with_colors
+from .view_label_human import visualize_label_with_colors
 
 
 class CityScapes(Dataset):

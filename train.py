@@ -67,6 +67,8 @@ def evaluate_model(model, dataloader, num_classes, device='cuda'):
     miou = miou_metric.compute().item()
     return {"val_loss": avg_loss, "val_mIoU": miou}
 
+
+# TODO: modify checkpoint names
 def train_model(model, dataloader, val_dataloader, optimizer, criterion, num_classes, num_epochs, model_name, device='cuda'):
 
     if not os.path.exists(PATH_STORE_RESULTS):
@@ -103,6 +105,15 @@ def train_model(model, dataloader, val_dataloader, optimizer, criterion, num_cla
         val_metrics = evaluate_model(model, val_dataloader, num_classes, device=device)
         all_metrics.append({**train_metrics, **val_metrics})
 
+        # Print metrics of the current epoch
+        print(f"Epoch {epoch + 1}/{num_epochs} - "
+              f"Train Loss: {train_metrics['loss']:.4f}, "
+              f"Train mIoU: {train_metrics['mIoU']:.4f}, "
+              f"Train Latency: {train_metrics['latency']:.4f} sec/batch, "
+              f"Val Loss: {val_metrics['val_loss']:.4f}, "
+              f"Val mIoU: {val_metrics['val_mIoU']:.4f}")
+        
+        # Log metrics to wandb
         wandb.log({
             "train_loss": train_metrics["loss"],
             "train_mIoU": train_metrics["mIoU"],
@@ -120,6 +131,9 @@ def train_model(model, dataloader, val_dataloader, optimizer, criterion, num_cla
             print(f"Checkpoint saved to {checkpoint_path}")
 
     wandb.finish()
+    torch.save(model.state_dict(), PATH_STORE_RESULTS + f'final_models/{model_name}.pth')
+
+    # Save model 
     return all_metrics
 
 

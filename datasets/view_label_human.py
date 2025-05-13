@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
-from GTA5Label import GTA5Labels_TaskCV2017  # adjust the import
+from .GTA5Label import GTA5Labels_TaskCV2017  # adjust the import
 
 GTA5_LABEL_NAMES = {
     0: 'road',

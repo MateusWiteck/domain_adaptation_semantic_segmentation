@@ -2,18 +2,17 @@ from torch.utils.data import Dataset
 import os
 import numpy as np
 from PIL import Image
-import torch
-from GTA5Label import GTA5Labels_TaskCV2017
-from view_label_human import visualize_label_with_colors
+from .GTA5Label import GTA5Labels_TaskCV2017
+from .view_label_human import visualize_label_with_colors
+
 
 class GTA5(Dataset):
-    def __init__(self, root_dir, transform=None, label_transform=None):
+    def __init__(self, root_dir, transform):
         super(GTA5, self).__init__()
         self.root_dir = root_dir
         self.image_dir = os.path.join(root_dir, 'images')
         self.label_dir = os.path.join(root_dir, 'labels')
         self.transform = transform
-        self.label_transform = label_transform
         self.images = os.listdir(self.image_dir)
 
         # Precompute the color → ID mapping once
@@ -31,19 +30,11 @@ class GTA5(Dataset):
         # Convert the label if needed
         label = self._convert_palette_to_class_ids(label)
 
-        # Convert label to array
-        label_array = np.array(label).astype(np.int32)
+        image, label = self.transform(image, label)
 
-        if self.label_transform is not None:
-            label = self.label_transform(label)
-            label_array = np.array(label).astype(np.int32)
+        #label_tensor = label.long()
+        return image, label
 
-        label_tensor = torch.tensor(label_array, dtype=torch.long)
-
-        if self.transform is not None:
-            image = self.transform(image)
-
-        return image, label_tensor
 
     def _convert_palette_to_class_ids(self, label_img):
         """
@@ -87,7 +78,7 @@ if __name__ == '__main__':
     transform = transforms.ToTensor()
 
     # Initialize dataset
-    dataset = GTA5(root_dir=root_dir, transform=transform, label_transform=None)
+    dataset = GTA5(root_dir=root_dir, transform=transform)
 
     # Select a random sample
     random.seed(42)  # Ensures reproducibility
