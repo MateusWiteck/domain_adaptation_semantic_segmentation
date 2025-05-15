@@ -3,6 +3,7 @@ from albumentations.pytorch import ToTensorV2
 import numpy as np
 import cv2
 
+
 class BaseTransform:
     def __init__(self, height=512, width=1024):
         self.height = height
