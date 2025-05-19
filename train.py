@@ -10,9 +10,11 @@ from tqdm import tqdm
 PATH_STORE_RESULTS = "/content/drive/MyDrive/MLDL_PROJECT/results/"
 CHECKPOINT_DIR = PATH_STORE_RESULTS + "checkpoints/"
 
+# TODO: if we change criterion
 def train_one_epoch(model, dataloader, optimizer, criterion, num_classes, device='cuda', epoch=None):
     model.train()
     total_loss = 0.0
+    # TODO: clean miou_metric
     miou_metric = MulticlassJaccardIndex(num_classes=num_classes, ignore_index=255).to(device)
     start_time = time.time()
 
@@ -45,6 +47,7 @@ def train_one_epoch(model, dataloader, optimizer, criterion, num_classes, device
     }
 
 def evaluate_model(model, dataloader, num_classes, device='cuda'):
+    # Validation step
     model.eval()
     miou_metric = MulticlassJaccardIndex(num_classes=num_classes, ignore_index=255).to(device)
     total_loss = 0.0
@@ -56,8 +59,10 @@ def evaluate_model(model, dataloader, num_classes, device='cuda'):
             labels = labels.to(device)
             preds = model(images)
 
+            # TODO: could be removed
             if preds.shape[-2:] != labels.shape[-2:]:
                 preds = F.interpolate(preds, size=labels.shape[-2:], mode='bilinear', align_corners=True)
+                print("Resizing predictions to match label size.")
 
             loss = criterion(preds, labels.long())
             total_loss += loss.item()
@@ -68,7 +73,7 @@ def evaluate_model(model, dataloader, num_classes, device='cuda'):
     return {"val_loss": avg_loss, "val_mIoU": miou}
 
 
-# TODO: modify checkpoint names
+# TODO: use the criterion variable (actualy is fixed to CrossEntropyLoss)
 def train_model(model, dataloader, val_dataloader, optimizer, criterion, num_classes, num_epochs, model_name, device='cuda'):
 
     if not os.path.exists(PATH_STORE_RESULTS):
@@ -137,7 +142,7 @@ def train_model(model, dataloader, val_dataloader, optimizer, criterion, num_cla
     return all_metrics
 
 
-
+# TODO: use the function that the professor provided to calculate the FLOPs
 def evaluate_performance(model, dataloader, num_classes, device='cuda'):
     model = model.to(device)
     model.eval()

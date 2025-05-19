@@ -30,7 +30,7 @@ class GTA5(Dataset):
         # Convert the label if needed
         label = self._convert_palette_to_class_ids(label)
 
-        image, label = self.transform(image, label)
+        image, label = self.transform(image, label) 
 
         #label_tensor = label.long()
         return image, label

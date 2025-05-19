@@ -2,6 +2,7 @@ from .base_transform import BaseTransform
 import albumentations as A
 import cv2
 
+# TODO: Just a template for the full augment transform
 class FullAugmentTransform(BaseTransform):
     def __init__(self, p=0.5, height=512, width=1024,
                  rotation_limit=15, blur_limit=(3, 7),

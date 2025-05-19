@@ -7,3 +7,4 @@ class RandomFlipTransform(BaseTransform):
         self.transform = self._finalize([
             A.HorizontalFlip(p=p)
         ])
+
